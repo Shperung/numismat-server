@@ -4,7 +4,7 @@ import {Hono} from "hono";
 type Message = {role: "user" | "assistant"; content: string};
 
 const logo = (githubOrg: string) =>
-  `https://github.com/inclusionAI.png?size=128`;
+  `https://github.com/${githubOrg}.png?size=128`;
 
 const groq = (id: string, title: string, model: string, logo: string) => ({
   id,
