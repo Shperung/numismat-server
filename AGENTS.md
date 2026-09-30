@@ -25,7 +25,8 @@
 
 ## Контракт API
 ```
-GET  /providers → [{ id: "groq-gpt-oss", title: "GPT-OSS 120B (Groq)" }, ...]   (10 шт., див. src/index.ts)
+GET  /providers → [{ id: "groq-gpt-oss", title: "GPT-OSS 120B (Groq)", logo: "https://github.com/openai.png?size=128" }, ...]
+                (10 шт., див. src/index.ts)
 POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant", content }] } → { text }
                 400 { error: "Unknown provider" }, 502 { error: "Provider error" }
 ```
@@ -84,3 +85,7 @@ POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant",
   OpenRouter `:free` — nemotron super/ultra/nano, qwen, ling-3.0-flash, dots-3-note-preview, lfm-2.5-2.6b.
   Не працюють: Groq Llama (`model_not_found`, Enterprise), `inkling-small` (403), Gemma (429), `nemotron-3.5-lightning` (timeout).
   Дрібні моделі (lfm 2.6B, nemotron nano) галюцинують найсильніше. `dots` відповідає з `\n` на початку → `text.trim()`.
+- `logo` у `/providers` — логотип виробника моделі (не хостингу): аватар офіційної GitHub-організації
+  (`https://github.com/<org>.png?size=128`, PNG/JPEG, редірект на `avatars.githubusercontent.com`).
+  PNG, бо SwiftUI `AsyncImage` не вміє SVG/ICO, Coil — SVG без окремого декодера.
+  Організації: `openai`, `QwenLM`, `NVIDIA`, `inclusionAI`, `dots-studio`, `Liquid4All` (сайт у профілі = офіційний сайт компанії).
