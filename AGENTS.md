@@ -26,9 +26,10 @@
 ## Контракт API
 ```
 GET  /providers → [{ id: "groq-gpt-oss", title: "GPT-OSS 120B (Groq)", logo: "https://github.com/openai.png?size=128" }, ...]
-                (10 шт., див. src/index.ts)
+                (9 шт., див. src/index.ts)
 POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant", content }] } → { text }
-                400 { error: "Unknown provider" }, 502 { error: "Provider error" }
+                400 { error: "Unknown provider" }, 502 { error: "Provider error" | "Empty response" },
+                500 { error: "Server error" } (у т.ч. таймаут провайдера 50 с) — завжди JSON
 ```
 - Сервер stateless: клієнт щоразу шле всю історію `messages`, сервер додає `system`-промпт про монету.
 - Клієнти: Expo — `fetch`, Kotlin — Ktor Client / OkHttp, Swift — `URLSession` + `async/await`.
@@ -81,10 +82,16 @@ POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant",
   `qwen3.8-27b:free` працює, але з граматичними помилками в українській.
 - `provider` у `POST /chat` — наш `id` з `/providers`, не назва моделі (інакше `Unknown provider`).
   Клієнт моделей не знає: список лише з `/providers`, модель/URL/ключ — на сервері (інакше чужі витрати на платні моделі).
-- 10 провайдерів через хелпери `groq()` / `openrouter()`: Groq — gpt-oss 120B/20B, qwen3.8-27b;
-  OpenRouter `:free` — nemotron super/ultra/nano, qwen, ling-3.0-flash, dots-3-note-preview, lfm-2.5-2.6b.
+- 9 провайдерів через хелпери `groq()` / `openrouter()`: Groq — gpt-oss 120B/20B, qwen3.8-27b;
+  OpenRouter `:free` — nemotron super/ultra, qwen, ling-3.0-flash, dots-3-note-preview, lfm-2.5-2.6b.
   Не працюють: Groq Llama (`model_not_found`, Enterprise), `inkling-small` (403), Gemma (429), `nemotron-3.5-lightning` (timeout).
   Дрібні моделі (lfm 2.6B, nemotron nano) галюцинують найсильніше. `dots` відповідає з `\n` на початку → `text.trim()`.
+- Помилки в клієнтах при 10 кнопках одночасно:
+  - на проді не було `OPENROUTER_API_KEY` у `.env` / без `pm2 restart` → усі OpenRouter `502`;
+  - «JSON Parse error: Unexpected character: I» — reasoning-модель повернула порожній `content` → `.trim()` впав →
+    Hono віддав текст `Internal Server Error`. Тепер: перевірка `text` → `502 Empty response`, `app.onError` → JSON.
+  - повільні моделі (Nemotron Ultra 550B) → nginx 504 HTML через 60 с → `AbortSignal.timeout(50_000)` на `fetch`.
+  - Nemotron Nano прибрано: пише англійські міркування замість відповіді. Qwen `:free` / Groq preview — часто `429`.
 - `logo` у `/providers` — логотип виробника моделі (не хостингу): аватар офіційної GitHub-організації
   (`https://github.com/<org>.png?size=128`, PNG/JPEG, редірект на `avatars.githubusercontent.com`).
   PNG, бо SwiftUI `AsyncImage` не вміє SVG/ICO, Coil — SVG без окремого декодера.

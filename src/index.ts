@@ -56,12 +56,6 @@ const providers = [
     logo("NVIDIA"),
   ),
   openrouter(
-    "openrouter-nemotron-nano",
-    "Nemotron Nano (OpenRouter)",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    logo("NVIDIA"),
-  ),
-  openrouter(
     "openrouter-qwen",
     "Qwen (OpenRouter)",
     "qwen/qwen3.8-27b:free",
@@ -117,14 +111,27 @@ app.post("/chat", async (c) => {
       model: p.model,
       messages: [{role: "system", content: systemPrompt(coin)}, ...messages],
     }),
+    signal: AbortSignal.timeout(50_000),
   });
   if (!res.ok) {
     console.error(p.id, res.status, await res.text());
     return c.json({error: "Provider error"}, 502);
   }
 
-  const data = (await res.json()) as {choices: {message: {content: string}}[]};
-  return c.json({text: data.choices[0].message.content.trim()});
+  const data = (await res.json()) as {
+    choices?: {message?: {content?: string | null}}[];
+  };
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) {
+    console.error(p.id, "empty response", JSON.stringify(data));
+    return c.json({error: "Empty response"}, 502);
+  }
+  return c.json({text});
+});
+
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({error: "Server error"}, 500);
 });
 
 serve({fetch: app.fetch, hostname: "127.0.0.1", port: 3000}, (info) => {
