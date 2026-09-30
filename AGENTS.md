@@ -25,7 +25,7 @@
 
 ## Контракт API
 ```
-GET  /providers → [{ id: "groq-gpt-oss", title: "GPT-OSS (Groq)" }, ...]
+GET  /providers → [{ id: "groq-gpt-oss", title: "GPT-OSS 120B (Groq)" }, ...]   (10 шт., див. src/index.ts)
 POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant", content }] } → { text }
                 400 { error: "Unknown provider" }, 502 { error: "Provider error" }
 ```
@@ -54,13 +54,13 @@ POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant",
 
 ## Поточний стан
 Задеплоєно: `GET /providers` і `POST /chat` (Groq, `openai/gpt-oss-120b`) на `https://inua.tetiana-redko.com`,
-поки без авторизації (свідомо — автор підключає Expo-клієнт).
+поки без авторизації. Підключено в усіх трьох клієнтах (Expo, Kotlin, Swift).
 
 ## План
 1. [x] Каркас Hono, `GET /providers`
 2. [x] Деплой: nginx + HTTPS на `inua`, pm2
 3. [x] `POST /chat` через Groq, ключ у `.env`
-4. [ ] Підключення в клієнтах (Expo → Kotlin → Swift)
+4. [x] Підключення в клієнтах (Expo, Kotlin, Swift) — Groq працює на всіх платформах
 5. [ ] Захист: `Authorization: Bearer <токен>` (`hono/bearer-auth`) + rate limit
 6. [ ] Інші провайдери: OpenRouter (`:free`), OpenAI
 7. [ ] Промпт: менше галюцинацій, більше полів монети
@@ -74,3 +74,13 @@ POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant",
 - Groq: Llama тепер Enterprise («Contact Sales») → `openai/gpt-oss-120b` (Developer plan), id `groq-gpt-oss`.
 - pm2 `restart` зберігає аргументи створення → змінити `--node-args` можна лише `pm2 delete` + `pm2 start` + `pm2 save`.
 - Модель галюцинує факти про монети (вигадані серії, метали) і відповідає з markdown (`**`).
+- OpenRouter: другий провайдер `openrouter-nemotron` (`nvidia/nemotron-3-super-120b-a12b:free`, `OPENROUTER_API_KEY`) — лише
+  новий об'єкт у масиві, код `/chat` без змін. Список `:free` моделей часто змінюється: `curl https://openrouter.ai/api/v1/models` (без ключа).
+  Gemma `:free` — 429 «rate-limited upstream» (спільний пул Google AI Studio), `inkling:free` — 403 (лише для агентів).
+  `qwen3.8-27b:free` працює, але з граматичними помилками в українській.
+- `provider` у `POST /chat` — наш `id` з `/providers`, не назва моделі (інакше `Unknown provider`).
+  Клієнт моделей не знає: список лише з `/providers`, модель/URL/ключ — на сервері (інакше чужі витрати на платні моделі).
+- 10 провайдерів через хелпери `groq()` / `openrouter()`: Groq — gpt-oss 120B/20B, qwen3.8-27b;
+  OpenRouter `:free` — nemotron super/ultra/nano, qwen, ling-3.0-flash, dots-3-note-preview, lfm-2.5-2.6b.
+  Не працюють: Groq Llama (`model_not_found`, Enterprise), `inkling-small` (403), Gemma (429), `nemotron-3.5-lightning` (timeout).
+  Дрібні моделі (lfm 2.6B, nemotron nano) галюцинують найсильніше. `dots` відповідає з `\n` на початку → `text.trim()`.
