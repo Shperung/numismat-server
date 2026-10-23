@@ -25,7 +25,19 @@ const json = (value: unknown) => ({
 });
 
 export const mcpHandler = createMcpHandler(() => {
-  const server = new McpServer({name: "numismat", version: "1.0.0"});
+  const server = new McpServer({
+    name: "numismat",
+    title: "Numismat",
+    version: "1.0.0",
+    description: "Особиста колекція монет: країни, номінали, роки, описи та фото",
+    websiteUrl: "https://inua.tetiana-redko.com",
+    icons: [
+      {
+        src: "https://firebasestorage.googleapis.com/v0/b/tetiana-redko.appspot.com/o/coins%2Fua%2F1-kopiyka-2008-1791879035095-avers.jpg?alt=media&token=6ac08f24-4e4b-43b3-9c80-1207f1a9e37c",
+        mimeType: "image/jpeg",
+      },
+    ],
+  });
 
   server.registerTool(
     "list_countries",

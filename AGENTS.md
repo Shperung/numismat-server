@@ -59,6 +59,7 @@ POST /mcp       MCP (Streamable HTTP) для AI-агентів (Claude Code, Cur
 ## Поточний стан
 Задеплоєно: `GET /providers` і `POST /chat` (Groq, `openai/gpt-oss-120b`) на `https://inua.tetiana-redko.com`,
 поки без авторизації. Підключено в усіх трьох клієнтах (Expo, Kotlin, Swift).
+MCP `POST /mcp` (`list_countries`, `list_coins`) задеплоєно; `GET` у браузері → `-32000 Method not allowed` (норма, MCP — лише POST).
 
 ## План
 1. [x] Каркас Hono, `GET /providers`
@@ -68,7 +69,7 @@ POST /mcp       MCP (Streamable HTTP) для AI-агентів (Claude Code, Cur
 5. [ ] Захист: `Authorization: Bearer <токен>` (`hono/bearer-auth`) + rate limit
 6. [ ] Інші провайдери: OpenRouter (`:free`), OpenAI
 7. [ ] Промпт: менше галюцинацій, більше полів монети
-8. [ ] MCP `/mcp` для Claude Code / claude.ai: читання монет (локально працює, чекає деплою) → далі `ask_coin_facts`
+8. [x] MCP `/mcp` для Claude Code / claude.ai: читання монет (задеплоєно) → далі `ask_coin_facts`
 
 ## Журнал
 - Каркас: Hono + `@hono/node-server`, слухає лише `127.0.0.1:3000`.
