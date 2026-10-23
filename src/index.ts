@@ -1,5 +1,6 @@
 import {serve} from "@hono/node-server";
 import {Hono} from "hono";
+import {mcpHandler} from "./mcp.js";
 
 type Message = {role: "user" | "assistant"; content: string};
 
@@ -128,6 +129,8 @@ app.post("/chat", async (c) => {
   }
   return c.json({text});
 });
+
+app.all("/mcp", (c) => mcpHandler.fetch(c.req.raw));
 
 app.onError((err, c) => {
   console.error(err);

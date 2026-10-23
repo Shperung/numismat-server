@@ -30,6 +30,8 @@ GET  /providers → [{ id: "groq-gpt-oss", title: "GPT-OSS 120B (Groq)", logo: "
 POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant", content }] } → { text }
                 400 { error: "Unknown provider" }, 502 { error: "Provider error" | "Empty response" },
                 500 { error: "Server error" } (у т.ч. таймаут провайдера 50 с) — завжди JSON
+POST /mcp       MCP (Streamable HTTP) для AI-агентів (Claude Code, Cursor, claude.ai), лише читання, без авторизації:
+                tools list_countries, list_coins { country? } — дані з Firestore (src/mcp.ts)
 ```
 - Сервер stateless: клієнт щоразу шле всю історію `messages`, сервер додає `system`-промпт про монету.
 - Клієнти: Expo — `fetch`, Kotlin — Ktor Client / OkHttp, Swift — `URLSession` + `async/await`.
@@ -66,6 +68,7 @@ POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant",
 5. [ ] Захист: `Authorization: Bearer <токен>` (`hono/bearer-auth`) + rate limit
 6. [ ] Інші провайдери: OpenRouter (`:free`), OpenAI
 7. [ ] Промпт: менше галюцинацій, більше полів монети
+8. [ ] MCP `/mcp` для Claude Code / claude.ai: читання монет (локально працює, чекає деплою) → далі `ask_coin_facts`
 
 ## Журнал
 - Каркас: Hono + `@hono/node-server`, слухає лише `127.0.0.1:3000`.
@@ -92,6 +95,12 @@ POST /chat      { provider, coin: Coin, messages: [{ role: "user" | "assistant",
     Hono віддав текст `Internal Server Error`. Тепер: перевірка `text` → `502 Empty response`, `app.onError` → JSON.
   - повільні моделі (Nemotron Ultra 550B) → nginx 504 HTML через 60 с → `AbortSignal.timeout(50_000)` на `fetch`.
   - Nemotron Nano прибрано: пише англійські міркування замість відповіді. Qwen `:free` / Groq preview — часто `429`.
+- MCP: `@modelcontextprotocol/server` v2 (+ `zod`), `createMcpHandler(factory)` — web-standard `fetch`, тому в Hono
+  просто `app.all("/mcp", (c) => mcpHandler.fetch(c.req.raw))`, без окремого процесу і змін у nginx. Stateless
+  (новий `McpServer` на кожен запит). Монети — Firestore REST без ключів (правила дозволяють публічне читання):
+  `firestore.googleapis.com/v1/projects/tetiana-redko/databases/(default)/documents/coins`, поля типізовані
+  (`{ stringValue }`, `{ integerValue }`) → беремо перше значення. `year` у частини монет — рядок.
+  Підключення: Claude Code — `claude mcp add --transport http numismat https://inua.tetiana-redko.com/mcp`.
 - `logo` у `/providers` — логотип виробника моделі (не хостингу): аватар офіційної GitHub-організації
   (`https://github.com/<org>.png?size=128`, PNG/JPEG, редірект на `avatars.githubusercontent.com`).
   PNG, бо SwiftUI `AsyncImage` не вміє SVG/ICO, Coil — SVG без окремого декодера.
